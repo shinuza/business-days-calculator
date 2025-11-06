@@ -44,6 +44,7 @@ export interface AppOptions {
   currency: Currency;
   defaultCountry: string;
   firstDayOfWeek: FirstDayOfWeek;
+  contributionPercentage?: number;
 }
 
 export interface DayExclusion {

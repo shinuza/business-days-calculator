@@ -5,6 +5,9 @@ const COUNTRY_KEY = 'workdays-country';
 const YEAR_KEY = 'workdays-year';
 const OPTIONS_KEY = 'workdays-options';
 const DAY_EXCLUSIONS_KEY = 'workdays-day-exclusions';
+const CONTRIBUTION_PERCENTAGE_KEY = 'workdays-contribution-percentage';
+const MANUAL_DAYS_OVERRIDE_KEY = 'workdays-manual-days-override';
+const MANUAL_DAYS_VALUE_KEY = 'workdays-manual-days-value';
 
 export function saveRateConfig(config: RateConfig): void {
   try {
@@ -109,5 +112,67 @@ export function clearMonthExclusions(year: number, month: number): void {
     saveDayExclusions(exclusions);
   } catch (error) {
     console.error('Failed to clear month exclusions:', error);
+  }
+}
+
+export function saveContributionPercentage(percentage: number | null): void {
+  try {
+    if (percentage === null || percentage === 0) {
+      localStorage.removeItem(CONTRIBUTION_PERCENTAGE_KEY);
+    } else {
+      localStorage.setItem(CONTRIBUTION_PERCENTAGE_KEY, percentage.toString());
+    }
+  } catch (error) {
+    console.error('Failed to save contribution percentage:', error);
+  }
+}
+
+export function loadContributionPercentage(): number | null {
+  try {
+    const stored = localStorage.getItem(CONTRIBUTION_PERCENTAGE_KEY);
+    return stored ? parseFloat(stored) : null;
+  } catch (error) {
+    console.error('Failed to load contribution percentage:', error);
+    return null;
+  }
+}
+
+export function saveManualDaysOverride(enabled: boolean): void {
+  try {
+    localStorage.setItem(MANUAL_DAYS_OVERRIDE_KEY, enabled.toString());
+  } catch (error) {
+    console.error('Failed to save manual days override:', error);
+  }
+}
+
+export function loadManualDaysOverride(): boolean {
+  try {
+    const stored = localStorage.getItem(MANUAL_DAYS_OVERRIDE_KEY);
+    return stored === 'true';
+  } catch (error) {
+    console.error('Failed to load manual days override:', error);
+    return false;
+  }
+}
+
+export function saveManualDaysValue(days: number | null): void {
+  try {
+    if (days === null) {
+      localStorage.removeItem(MANUAL_DAYS_VALUE_KEY);
+    } else {
+      localStorage.setItem(MANUAL_DAYS_VALUE_KEY, days.toString());
+    }
+  } catch (error) {
+    console.error('Failed to save manual days value:', error);
+  }
+}
+
+export function loadManualDaysValue(): number | null {
+  try {
+    const stored = localStorage.getItem(MANUAL_DAYS_VALUE_KEY);
+    return stored ? parseInt(stored, 10) : null;
+  } catch (error) {
+    console.error('Failed to load manual days value:', error);
+    return null;
   }
 }

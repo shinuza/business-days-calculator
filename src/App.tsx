@@ -5,13 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { MonthSelector } from '@/components/MonthSelector';
 import { MonthAgenda } from '@/components/MonthAgenda';
 import { RateConfig } from '@/components/RateConfig';
 import { OptionsDialog, OptionsButton } from '@/components/OptionsDialog';
 import { loadHolidayCalendar, getAvailableYears, getAvailableCountries } from '@/utils/holidayLoader';
 import { calculateWorkableDays, getMonthWorkableDays, getMonthDays } from '@/utils/workdaysCalculator';
-import { saveRateConfig, loadRateConfig, saveCountry, loadCountry, saveYear, loadYear, saveOptions, loadOptions, saveDayExclusions, loadDayExclusions, clearMonthExclusions } from '@/utils/storage';
+import { saveRateConfig, loadRateConfig, saveCountry, loadCountry, saveYear, loadYear, saveOptions, loadOptions, saveDayExclusions, loadDayExclusions, clearMonthExclusions, saveContributionPercentage, loadContributionPercentage, saveManualDaysOverride, loadManualDaysOverride, saveManualDaysValue, loadManualDaysValue } from '@/utils/storage';
 import { HolidayCalendar, RateConfig as RateConfigType, AppOptions, DayExclusion, CURRENCIES } from '@/types';
 
 function App() {
@@ -30,6 +31,9 @@ function App() {
   );
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [dayExclusions, setDayExclusions] = useState<Record<string, DayExclusion>>(loadDayExclusions());
+  const [contributionPercentage, setContributionPercentage] = useState<number | null>(loadContributionPercentage());
+  const [manualDaysOverride, setManualDaysOverride] = useState<boolean>(loadManualDaysOverride());
+  const [manualDaysValue, setManualDaysValue] = useState<number | null>(loadManualDaysValue());
 
   const availableYears = getAvailableYears();
   const availableCountries = getAvailableCountries();
@@ -62,12 +66,15 @@ function App() {
   }, [year, holidays, dayExclusions]);
 
   // Calculate workable days for selected range
-  const workableDays = useMemo(() => {
+  const calculatedWorkableDays = useMemo(() => {
     if (!startDate || !endDate) return 0;
     const start = new Date(startDate);
     const end = new Date(endDate);
     return calculateWorkableDays(start, end, holidays, dayExclusions);
   }, [startDate, endDate, holidays, dayExclusions]);
+
+  // Use manual override if enabled, otherwise use calculated days
+  const workableDays = manualDaysOverride && manualDaysValue !== null ? manualDaysValue : calculatedWorkableDays;
 
   // Calculate expected revenue
   const expectedRevenue = useMemo(() => {
@@ -118,6 +125,47 @@ function App() {
     // Update country if default country changed
     if (newOptions.defaultCountry !== country) {
       setCountry(newOptions.defaultCountry);
+    }
+  };
+
+  // Handle contribution percentage change
+  const handleContributionPercentageChange = (value: string) => {
+    const numValue = parseFloat(value);
+    if (value === '' || isNaN(numValue)) {
+      setContributionPercentage(null);
+      saveContributionPercentage(null);
+    } else {
+      const clamped = Math.max(0, Math.min(100, numValue));
+      setContributionPercentage(clamped);
+      saveContributionPercentage(clamped);
+    }
+  };
+
+  // Handle manual days override toggle
+  const handleManualDaysOverrideChange = (checked: boolean) => {
+    setManualDaysOverride(checked);
+    saveManualDaysOverride(checked);
+    if (!checked) {
+      // Reset to calculated value when disabling override
+      setManualDaysValue(null);
+      saveManualDaysValue(null);
+    } else if (manualDaysValue === null) {
+      // Initialize with calculated value when enabling
+      setManualDaysValue(calculatedWorkableDays);
+      saveManualDaysValue(calculatedWorkableDays);
+    }
+  };
+
+  // Handle manual days value change
+  const handleManualDaysValueChange = (value: string) => {
+    const numValue = parseInt(value, 10);
+    if (value === '' || isNaN(numValue)) {
+      setManualDaysValue(null);
+      saveManualDaysValue(null);
+    } else {
+      const clamped = Math.max(0, numValue);
+      setManualDaysValue(clamped);
+      saveManualDaysValue(clamped);
     }
   };
 
@@ -273,34 +321,106 @@ function App() {
           <CardHeader>
             <CardTitle>Results</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label className="text-lg">Workable Days</Label>
-              <div className="text-4xl font-bold text-green-700">
-                {workableDays}
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-lg">Workable Days</Label>
+                  <Checkbox
+                    id="manualOverride"
+                    checked={manualDaysOverride}
+                    onChange={(e) => handleManualDaysOverrideChange(e.target.checked)}
+                    label="Manual"
+                  />
+                </div>
+                {manualDaysOverride ? (
+                  <div className="space-y-2">
+                    <Input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={manualDaysValue ?? ''}
+                      onChange={(e) => handleManualDaysValueChange(e.target.value)}
+                      className="text-3xl font-bold text-green-700 h-auto py-2 bg-white border-2 border-green-400"
+                      placeholder="Enter days"
+                    />
+                    <p className="text-xs text-gray-600">
+                      Calculated: {calculatedWorkableDays} days
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-4xl font-bold text-green-700">
+                    {workableDays}
+                  </div>
+                )}
+                {startDate && endDate && (
+                  <p className="text-sm text-gray-600">
+                    From {format(new Date(startDate), 'MMM d, yyyy')} to{' '}
+                    {format(new Date(endDate), 'MMM d, yyyy')}
+                  </p>
+                )}
               </div>
-              {startDate && endDate && (
-                <p className="text-sm text-gray-600">
-                  From {format(new Date(startDate), 'MMM d, yyyy')} to{' '}
-                  {format(new Date(endDate), 'MMM d, yyyy')}
-                </p>
-              )}
+              <div className="space-y-2">
+                <Label className="text-lg">Expected Revenue</Label>
+                <div className="text-4xl font-bold text-green-700">
+                  {currencySymbol}{expectedRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                {rateConfig.type === 'daily' && rateConfig.dailyRate && (
+                  <p className="text-sm text-gray-600">
+                    {workableDays} days × {currencySymbol}{rateConfig.dailyRate}/day
+                  </p>
+                )}
+                {rateConfig.type === 'hourly' && rateConfig.hourlyRate && rateConfig.hoursPerDay && (
+                  <p className="text-sm text-gray-600">
+                    {workableDays} days × {rateConfig.hoursPerDay} hrs × {currencySymbol}{rateConfig.hourlyRate}/hr
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-lg">Expected Revenue</Label>
-              <div className="text-4xl font-bold text-green-700">
-                {currencySymbol}{expectedRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+
+            {/* Contribution Section */}
+            <div className="border-t border-green-300 pt-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="contribution">Contribution % (optional)</Label>
+                  <Input
+                    id="contribution"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    placeholder="0"
+                    value={contributionPercentage ?? ''}
+                    onChange={(e) => handleContributionPercentageChange(e.target.value)}
+                    className="bg-white"
+                  />
+                  <p className="text-xs text-gray-600">
+                    Percentage deducted from revenue
+                  </p>
+                </div>
+                {contributionPercentage !== null && contributionPercentage > 0 && (
+                  <>
+                    <div className="space-y-2">
+                      <Label className="text-lg">Contribution Amount</Label>
+                      <div className="text-3xl font-bold text-orange-600">
+                        {currencySymbol}{(expectedRevenue * contributionPercentage / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        {contributionPercentage}% of revenue
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-lg">Net Remaining</Label>
+                      <div className="text-3xl font-bold text-blue-600">
+                        {currencySymbol}{(expectedRevenue * (1 - contributionPercentage / 100)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        After {contributionPercentage}% contribution
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
-              {rateConfig.type === 'daily' && rateConfig.dailyRate && (
-                <p className="text-sm text-gray-600">
-                  {workableDays} days × {currencySymbol}{rateConfig.dailyRate}/day
-                </p>
-              )}
-              {rateConfig.type === 'hourly' && rateConfig.hourlyRate && rateConfig.hoursPerDay && (
-                <p className="text-sm text-gray-600">
-                  {workableDays} days × {rateConfig.hoursPerDay} hrs × {currencySymbol}{rateConfig.hourlyRate}/hr
-                </p>
-              )}
             </div>
           </CardContent>
         </Card>

@@ -225,6 +225,8 @@ function App() {
               selectedMonth={selectedMonth}
               onMonthSelect={handleMonthSelect}
               workableDaysPerMonth={workableDaysPerMonth}
+              currentYear={currentYear}
+              selectedYear={year}
             />
           </CardContent>
         </Card>

@@ -13,28 +13,73 @@ A modern web application to calculate workable days between dates, considering h
 
 ## Getting Started
 
-### Installation
+### Local Development
+
+#### Installation
 
 ```bash
 npm install
 ```
 
-### Development
+#### Development
 
 ```bash
 npm run dev
 ```
 
-### Build
+#### Build
 
 ```bash
 npm run build
 ```
 
-### Preview
+#### Preview
 
 ```bash
 npm run preview
+```
+
+### Docker
+
+#### Build Docker Image
+
+```bash
+docker build -t business-days-calculator .
+```
+
+#### Run Docker Container
+
+```bash
+docker run -d -p 8080:80 --name business-days-calculator business-days-calculator
+```
+
+The application will be available at `http://localhost:8080`
+
+#### Stop and Remove Container
+
+```bash
+docker stop business-days-calculator
+docker rm business-days-calculator
+```
+
+#### Using Docker Compose (Optional)
+
+Create a `docker-compose.yml` file:
+
+```yaml
+version: '3.8'
+services:
+  web:
+    build: .
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+```
+
+Then run:
+
+```bash
+docker-compose up -d
 ```
 
 ## Adding New Years

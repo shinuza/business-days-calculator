@@ -2,7 +2,6 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface MonthSelectorProps {
-  year: number;
   selectedMonth: number | null;
   onMonthSelect: (month: number) => void;
   workableDaysPerMonth: Record<number, number>;
@@ -14,7 +13,6 @@ const MONTHS = [
 ];
 
 export function MonthSelector({
-  year,
   selectedMonth,
   onMonthSelect,
   workableDaysPerMonth,

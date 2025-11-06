@@ -222,7 +222,6 @@ function App() {
           </CardHeader>
           <CardContent>
             <MonthSelector
-              year={year}
               selectedMonth={selectedMonth}
               onMonthSelect={handleMonthSelect}
               workableDaysPerMonth={workableDaysPerMonth}

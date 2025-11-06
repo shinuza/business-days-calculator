@@ -217,7 +217,7 @@ function App() {
         {/* Month Selector */}
         <Card>
           <CardHeader>
-            <CardTitle>Quick Month Selection</CardTitle>
+            <CardTitle>Quick Month Selection - {year}</CardTitle>
             <CardDescription>Click a month to see its workable days</CardDescription>
           </CardHeader>
           <CardContent>
